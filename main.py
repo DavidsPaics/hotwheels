@@ -18,12 +18,8 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Update game state
-    # $PLACEHOLDER$
-
     # Draw everything
     screen.fill((0, 0, 0))  # Fill the screen with black
-    # $PLACEHOLDER$
 
     # Flip the display
     pygame.display.flip()

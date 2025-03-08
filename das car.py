@@ -1,6 +1,7 @@
 from random import *
 from math import *
 import pygame
+from utilities import *
 pygame.init()
 win=pygame.display.set_mode((1200,600))
 run=True
@@ -19,15 +20,22 @@ class Automobile:
         self.angle=pi/2
         self.speed=0
         self.total_speed=0
+        self.aspeed=0
+        self.drift_conversion=False
 
-        self.length=40 #fuck it i'm making the sprite like this
-        self.width=20
+        self.sprite=pygame.image.load("assets/cars/sport_red.png")
+
+        self.length=self.sprite.get_height()/2 #fuck it i'm making the sprite like this
+        self.width=self.sprite.get_width()/2
         self.wheel_rotation=0
 
         self.drifting=False
         self.drift_marks=[]
         self.last_drift_mark=0
-    def control(self):
+
+        
+
+    def control(self):  
         self.keys=pygame.key.get_pressed()
         is_key_down=False
         if self.keys[pygame.K_a] or self.keys[pygame.K_LEFT]:
@@ -58,9 +66,22 @@ class Automobile:
             self.speed*=0.97
             self.xspeed*=1-0.2*dt
             self.yspeed*=1-0.2*dt
-        self.vectors.append((cos(self.angle)*self.speed/1000,sin(self.angle)*self.speed/1000))
+        if self.keys[pygame.K_SPACE] or self.drifting:
+            self.drifting=(abs(self.angle%tau-self.movement_angle%tau)>(pi/5)) and (self.total_speed>(self.max_speed/10))
+        else:
+            self.drifting=False
+        if self.drifting or self.keys[pygame.K_SPACE]:
+            self.vectors.append((cos(self.angle)*self.speed/1000,sin(self.angle)*self.speed/1000))
+            self.drift_conversion=False
+        else:
+            if not self.drift_conversion:
+                self.drift_conversion=True
+                deadzone=2
+                self.aspeed=max(0,deadzone-abs(self.angle%tau-self.movement_angle%tau))/deadzone*self.speed
+            self.aspeed+=(self.speed-self.aspeed)/40*dt
+            self.xspeed=cos(self.angle)*self.aspeed/3
+            self.yspeed=sin(self.angle)*self.aspeed/3
         #print(self.total_speed,(self.max_speed/10))
-        self.drifting=(abs(self.angle%tau-self.movement_angle%tau)>(pi/5)) and (self.total_speed>(self.max_speed/10))
     def move(self):
         for i in self.vectors:
             self.xspeed+=i[0]
@@ -88,7 +109,8 @@ class Automobile:
             pygame.draw.polygon(surface,(15,15,15),[
                 (i[0]+cos(ii*tau/4+i[2])*3+camera_x_offset-self.x,i[1]+sin(ii*tau/4+i[2])*3+camera_y_offset-self.y) for ii in range(4)
             ])
-        pygame.draw.polygon(surface,(255,234,23),[(i[0]+camera_x_offset,i[1]+camera_y_offset) for i in self.outer_points])
+        center(pygame.transform.rotate(self.sprite,-self.angle/tau*360-90),surface,camera_x_offset,camera_y_offset)
+        #pygame.draw.polygon(surface,(255,234,23),[(i[0]+camera_x_offset,i[1]+camera_y_offset) for i in self.outer_points])
         for i in range(3):
             i-=0.25
             pygame.draw.polygon(surface,(138/1.2,255/1.2,207/1.2),(

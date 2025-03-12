@@ -5,5 +5,5 @@ import pygame
 class Player:
     def __init__(self):
         #set to 1 for testing purpouses
-        self.driving_disability=1
-        self.temporal_perception=1
+        self.driving_disability=0
+        self.temporal_perception=0

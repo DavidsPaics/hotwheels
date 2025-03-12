@@ -3,14 +3,17 @@ from math import *
 import pygame
 from utilities import *
 from der_mann import *
+from das_map import *
 pygame.init()
-win=pygame.display.set_mode((1200,600))
+screen=pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+win=pygame.Surface((1800,900))
 run=True
+world_map=Map()
 class Automobile:
     def __init__(self):
         #Vectorial movement setup
-        self.x=0
-        self.y=0
+        self.x=250
+        self.y=250
         self.xspeed=0
         self.yspeed=0
         self.vectors=[]
@@ -18,7 +21,7 @@ class Automobile:
 
         self.acceleration=4
         self.max_speed=40
-        self.angle=pi/2
+        self.angle=pi/2*3
         self.speed=0
         self.total_speed=0
         self.aspeed=0
@@ -45,32 +48,29 @@ class Automobile:
         self.keys=pygame.key.get_pressed() 
         is_key_down=False
         if self.keys[pygame.K_a] or self.keys[pygame.K_LEFT]:
-            self.wheel_rotation-=0.001*dt
+            self.wheel_rotation-=0.002*dt
             is_key_down=True
         if self.keys[pygame.K_d] or self.keys[pygame.K_RIGHT]:
-            self.wheel_rotation+=0.001*dt
+            self.wheel_rotation+=0.002*dt
             is_key_down=True
         if not is_key_down:
-            if random()<0.02*dt:
+            if random()<0.04*dt*self.player.driving_disability:
                 self.wheel_jerk=min(0.005*self.player.driving_disability,max(-0.005*self.player.driving_disability,self.wheel_jerk+(random()*self.player.driving_disability/40000)*(randint(0,1)*2-1)))
             self.wheel_acceleration+=self.wheel_jerk
-            if abs(self.wheel_acceleration)>=0.015:
+            if abs(self.wheel_acceleration)>=0.025:
                 self.wheel_jerk=-self.wheel_jerk
             if abs(self.wheel_rotation)<=0.001:
                 self.wheel_rotation=0
             elif abs(self.wheel_acceleration)<0.00005:
-                if self.wheel_rotation>0:
-                    self.wheel_rotation-=0.001*dt
-                else:
-                    self.wheel_rotation+=0.001*dt
+                self.wheel_rotation=0
         else:
             pass
             self.wheel_acceleration=0
             self.wheel_jerk=0
             self.xspeed*=1-0.04*dt
             self.yspeed*=1-0.04*dt
-        self.wheel_rotation=max(-0.05,min(0.05,self.wheel_rotation+self.wheel_acceleration*dt))
-        self.angle+=(self.wheel_rotation)*dt*self.speed/self.max_speed
+        self.wheel_rotation=max(-0.05,min(0.05,self.wheel_rotation))
+        self.angle+=(self.wheel_rotation+self.wheel_acceleration)*dt*self.speed/self.max_speed
         if self.keys[pygame.K_w] or self.keys[pygame.K_UP]: # We simulate real fun
             self.speed+=self.acceleration
             self.speed=min(self.max_speed,self.speed)
@@ -122,6 +122,8 @@ class Automobile:
             (cos(self.angle)*self.length+cos(self.angle+pi/2)*self.width*(1-2*i/10),sin(self.angle)*self.length+sin(self.angle+pi/2)*self.width*(1-2*i/10)) for i in range(11)            
         ]
     def draw(self,surface):
+        camera_x_offset=surface.get_width()/2
+        camera_y_offset=surface.get_height()/2
         for i in self.drift_marks:
             pygame.draw.rect(surface,(15,15,15),[i[0]+camera_x_offset-self.x-2,i[1]+camera_y_offset-self.y-2,4,4])
         center(pygame.transform.rotate(self.sprite,-self.angle/tau*360-90),surface,camera_x_offset,camera_y_offset)
@@ -130,25 +132,25 @@ class Automobile:
             i-=0.25
             pygame.draw.polygon(surface,(138/1.2,255/1.2,207/1.2),(
                 (
-                    1100+cos(self.wheel_rotation*tau/0.05+i/3*tau)*18+cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4,
-                    500+sin(self.wheel_rotation*tau/0.05+i/3*tau)*18+sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4
+                    1700+cos(self.wheel_rotation*tau/0.05+i/3*tau)*18+cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4,
+                    800+sin(self.wheel_rotation*tau/0.05+i/3*tau)*18+sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4
                     ),
                 (
-                    1100+cos(self.wheel_rotation*tau/0.05+i/3*tau)*70+cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9,
-                    500+sin(self.wheel_rotation*tau/0.05+i/3*tau)*70+sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9
+                    1700+cos(self.wheel_rotation*tau/0.05+i/3*tau)*70+cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9,
+                    800+sin(self.wheel_rotation*tau/0.05+i/3*tau)*70+sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9
                     ),
                 (
-                    1100+cos(self.wheel_rotation*tau/0.05+i/3*tau)*70-cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9,
-                    500+sin(self.wheel_rotation*tau/0.05+i/3*tau)*70-sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9
+                    1700+cos(self.wheel_rotation*tau/0.05+i/3*tau)*70-cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9,
+                    800+sin(self.wheel_rotation*tau/0.05+i/3*tau)*70-sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*9
                     ),
                 (
-                    1100+cos(self.wheel_rotation*tau/0.05+i/3*tau)*18-cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4,
-                    500+sin(self.wheel_rotation*tau/0.05+i/3*tau)*18-sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4
+                    1700+cos(self.wheel_rotation*tau/0.05+i/3*tau)*18-cos(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4,
+                    800+sin(self.wheel_rotation*tau/0.05+i/3*tau)*18-sin(self.wheel_rotation*tau/0.05+i/3*tau+pi/2)*4
                     ),
                 
             ))
-        pygame.draw.circle(surface,(138,255,207),(1100,500),80,15)
-        pygame.draw.circle(surface,(138,255,207),(1100,500),20)
+        pygame.draw.circle(surface,(138,255,207),(1700,800),80,15)
+        pygame.draw.circle(surface,(138,255,207),(1700,800),20)
         if self.drifting:
             self.last_drift_mark+=self.total_speed*dt
             if self.last_drift_mark>5:
@@ -166,8 +168,8 @@ class Automobile:
         pygame.draw.line(surface,(255,0,125),(5,300),(5,300+self.wheel_acceleration*30000),5)
         pygame.draw.line(surface,(125,0,255),(10,200),(10,self.temporal_perception*200),5)
         
-camera_x_offset=600
-camera_y_offset=300
+#camera_x_offset=600
+#camera_y_offset=300
 car=Automobile()
 clock=pygame.time.Clock()
 while run:
@@ -180,17 +182,19 @@ while run:
     for event in pygame.event.get():
         if event.type==pygame.QUIT:
             run=False
-    win.fill((55,55,55))
-    for i in range(13):
-        y_offset=-car.y%50
-        for ii in range(10):
-            ii-=4.5
-            pygame.draw.rect(win,(255,255,255),(600-car.x-3+ii*60,y_offset-10+i*50,6,20))
-    pygame.draw.rect(win,(255,255,255),(600-3-330-car.x,0,6,600))
-    pygame.draw.rect(win,(255,255,255),(600-3+330-car.x,0,6,600))
-    
+    win.fill((105,105,105))
+    #for i in range(13):
+    #    y_offset=-car.y%50
+    #    for ii in range(10):
+    #        ii-=4.5
+    #        pygame.draw.rect(win,(255,255,255),(600-car.x-3+ii*60,y_offset-10+i*50,6,20))
+    #pygame.draw.rect(win,(255,255,255),(600-3-330-car.x,0,6,600))
+    #pygame.draw.rect(win,(255,255,255),(600-3+330-car.x,0,6,600))
     car.control()
     car.move()
+    world_map.update(car)
+    world_map.draw(win,car)
     car.draw(win)
+    screen.blit(pygame.transform.scale(win,screen.get_size()),(0,0))
     pygame.display.update()
 pygame.quit()
